@@ -46,23 +46,29 @@ rf_free!(rf::RfHandle) = cusolverRfFree(rf.handle)
 
 Base.unsafe_convert(::Type{cusolverRfHandle_t}, rf::RfHandle) = rf.handle
 
-struct RfHostLU{T}
-    nnzA::Cint
-    rowsA::Vector{Cint}
-    colsA::Vector{Cint}
-    valsA::Vector{T}
-    nnzL::Cint
-    rowsL::Vector{Cint}
-    colsL::Vector{Cint}
-    valsL::Vector{T}
-    nnzU::Cint
-    rowsU::Vector{Cint}
-    colsU::Vector{Cint}
-    valsU::Vector{T}
-    P::Vector{Cint}
-    Q::Vector{Cint}
+struct RFSymbolicAnalysis{Tv, Ti}
+    n::Ti
+    m::Ti
+    nnzA::Ti
+    rowsA::Vector{Ti}
+    colsA::Vector{Ti}
+    valsA::Vector{Tv}
+    nnzL::Ti
+    rowsL::Vector{Ti}
+    colsL::Vector{Ti}
+    valsL::Vector{Tv}
+    nnzU::Ti
+    rowsU::Vector{Ti}
+    colsU::Vector{Ti}
+    valsU::Vector{Tv}
+    P::Vector{Ti}
+    Q::Vector{Ti}
 end
 
+Base.size(rf::RFSymbolicAnalysis) = (rf.n, rf.m)
+
+# By default, we run the symbolic analysis on the CPU using
+# the low-level utilities provided in cusolver.
 function rf_symbolic_analysis(
     A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
     ordering=:AMD, tol=1e-8, check=true,
@@ -226,8 +232,8 @@ function rf_symbolic_analysis(
     h_P = h_Qreorder[h_Plu .+ 1]
     h_Q = h_Qreorder[h_Qlu .+ 1]
 
-    return RfHostLU(
-        nnzA, h_rowsA, h_colsA, h_valsA,
+    return RFSymbolicAnalysis(
+        m, n, nnzA, h_rowsA, h_colsA, h_valsA,
         nnzL, h_rowsL, h_colsL, h_valsL,
         nnzU, h_rowsU, h_colsU, h_valsU,
         h_P, h_Q,
@@ -247,18 +253,24 @@ struct RFLowLevel{T}
     dT::CuVector{T}
 end
 
+# Default fallback: compute symbolic factorization with cusolver
 function RFLowLevel(
     A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
-    nrhs=1, ordering=:AMD, check=true, fast_mode=true,
+    ordering=:AMD, check=true, options...
+) where {T, Ti}
+    lu_host = rf_symbolic_analysis(A; ordering=ordering, check=check)
+    return RFLowLevel(lu_host; options...)
+end
+
+function RFLowLevel(
+    lu_host::RFSymbolicAnalysis{T, Ti};
+    fast_mode=true,
     factorization_algo=CUSOLVERRF_FACTORIZATION_ALG0,
     triangular_algo=CUSOLVERRF_TRIANGULAR_SOLVE_ALG1,
 ) where {T, Ti}
-    if nrhs > 1
-        error("Currently CusolverRF supports only one right-hand side.")
-    end
-    n, m = size(A)
-    # Perform symbolic analysis on the host
-    lu_host = rf_symbolic_analysis(A; ordering=ordering, check=check)
+    # Currently CusolverRF supports only one right-hand side.
+    nrhs = 1
+    n, m = size(lu_host)
 
     # Allocations (device)
     d_T = CUDA.zeros(Cdouble, m * nrhs)
@@ -361,13 +373,20 @@ struct RFBatchedLowLevel{T}
 end
 
 function RFBatchedLowLevel(
-    A::CUSPARSE.CuSparseMatrixCSR{T, Ti}, batchsize::Int;
-    ordering=:AMD, check=true, fast_mode=true,
+    A::CUSPARSE.CuSparseMatrixCSR{T, Ti}, batchsize;
+    ordering=:AMD, check=true, options...
+) where {T, Ti}
+    lu_host = rf_symbolic_analysis(A; ordering=ordering, check=check)
+    return RFBatchedLowLevel(lu_host, batchsize; options...)
+end
+
+function RFBatchedLowLevel(
+    lu_host::RFSymbolicAnalysis{T, Ti}, batchsize::Int;
+    fast_mode=true,
     factorization_algo=CUSOLVERRF_FACTORIZATION_ALG0,
     triangular_algo=CUSOLVERRF_TRIANGULAR_SOLVE_ALG1,
 ) where {T, Ti}
-    n, m = size(A)
-    lu_host = rf_symbolic_analysis(A; ordering=ordering, check=check)
+    n, m = size(lu_host)
 
     # Allocations (device)
     d_T = CUDA.zeros(Cdouble, m * batchsize * 2)
