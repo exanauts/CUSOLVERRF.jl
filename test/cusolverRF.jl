@@ -46,10 +46,10 @@ n = 512
         d_A = CuSparseMatrixCSR(A)
         d_B = CuMatrix{Float64}(B)
         d_X = CUDA.zeros(Float64, n, nbatch)
-        rflu = CUSOLVERRF.RFBacthedLowLevel(d_A, nbatch)
+        rflu = CUSOLVERRF.RFBatchedLowLevel(d_A, nbatch)
 
         copyto!(d_X, d_B)
-        CUSOLVER.rf_batch_solve!(rflu, d_X)
+        CUSOLVERRF.rf_batch_solve!(rflu, d_X)
         res = Array(d_X)
         @test isapprox(res, solution)
 
@@ -69,12 +69,14 @@ n = 512
         As_batch = [sparse(I, J, randn(nnzA)) for i in 1:nbatch]
         d_As_batch = [CuSparseMatrixCSR(Ab) for Ab in As_batch]
         CUSOLVERRF.rf_batch_refactor!(rflu, d_As_batch)
-        # ldiv!(d_X, rflu, d_B)
-        # res = Array(d_X)
-        # for i in 1:nbatch
-        #     solution = As_batch[i] \ B[:, i]
-        #     @test isapprox(res[:, i], solution)
-        # end
+        copyto!(d_X, d_B)
+        CUSOLVERRF.rf_batch_solve!(rflu, d_X)
+        res = Array(d_X)
+        solution = similar(res)
+        for i in 1:nbatch
+            solution[:, i] = As_batch[i] \ B[:, i]
+        end
+        @test isapprox(res, solution)
     end
 end
 

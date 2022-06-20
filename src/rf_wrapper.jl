@@ -69,7 +69,7 @@ function rf_symbolic_analysis(
 ) where {T, Ti}
     m, n = size(A)
     @assert m == n # only squared matrices are supported
-    nnzA = nnz(A)
+    nnzA = SparseArrays.nnz(A)
 
     # Transfer data to host
     h_rowsA = A.rowPtr |> Vector{Cint}
@@ -247,7 +247,7 @@ struct RFLowLevel{T}
     dT::CuVector{T}
 end
 
-function rflu(
+function RFLowLevel(
     A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
     nrhs=1, ordering=:AMD, check=true, fast_mode=true,
     factorization_algo=CUSOLVERRF_FACTORIZATION_ALG0,
@@ -367,7 +367,7 @@ function RFBatchedLowLevel(
     triangular_algo=CUSOLVERRF_TRIANGULAR_SOLVE_ALG1,
 ) where {T, Ti}
     n, m = size(A)
-    lu_host = RfHostLU(A; ordering=ordering, check=check)
+    lu_host = rf_symbolic_analysis(A; ordering=ordering, check=check)
 
     # Allocations (device)
     d_T = CUDA.zeros(Cdouble, m * batchsize * 2)
