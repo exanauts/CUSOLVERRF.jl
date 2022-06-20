@@ -20,4 +20,7 @@ include("utils.jl")
 include("rf_wrapper.jl")
 include("klu.jl")
 
+include("backsolve.jl")
+include("interface.jl")
+
 end # module

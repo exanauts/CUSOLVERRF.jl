@@ -36,8 +36,13 @@ end
 
 csc2csr(n, m, Ap, Ai, Ax, Bp, Bj, Bx) = csr2csc(m, n, Ap, Ai, Ax, Bp, Bj, Bx)
 
-function decrement!(vals::Vector{Cint})
-    vals .-= Cint(1)
+function decrement!(vals::Vector{Ti}) where Ti
+    vals .-= one(Ti)
+    return
+end
+
+function increment!(vals::Vector{Ti}) where Ti
+    vals .+= one(Ti)
     return
 end
 
