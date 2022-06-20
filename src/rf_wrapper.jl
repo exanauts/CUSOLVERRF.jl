@@ -232,7 +232,7 @@ function rf_symbolic_analysis(
     h_P = h_Qreorder[h_Plu .+ 1]
     h_Q = h_Qreorder[h_Qlu .+ 1]
 
-    return RFSymbolicAnalysis(
+    return RFSymbolicAnalysis{T, Cint}(
         m, n, nnzA, h_rowsA, h_colsA, h_valsA,
         nnzL, h_rowsL, h_colsL, h_valsL,
         nnzU, h_rowsU, h_colsU, h_valsU,

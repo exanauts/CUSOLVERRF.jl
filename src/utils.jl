@@ -43,7 +43,7 @@ end
 
 function convert2csr(A::SparseArrays.SparseMatrixCSC{Tv, Ti}) where {Tv, Ti}
     n, m = size(A)
-    nnzA = nnz(A)
+    nnzA = SparseArrays.nnz(A)
     Ap, Ai, Ax = A.colptr, A.rowval, A.nzval
 
     Bp = zeros(Ti, n+1)
