@@ -70,7 +70,7 @@ Base.size(rf::RFSymbolicAnalysis) = (rf.n, rf.m)
 # By default, we run the symbolic analysis on the CPU using
 # the low-level utilities provided in cusolver.
 function rf_symbolic_analysis(
-    A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
+    A::Union{CUSPARSE.CuSparseMatrixCSR{T, Ti}, SparseArrays.SparseMatrixCSC{T, Ti}};
     ordering=:AMD, tol=1e-8, check=true,
 ) where {T, Ti}
     m, n = size(A)
@@ -78,13 +78,11 @@ function rf_symbolic_analysis(
     nnzA = SparseArrays.nnz(A)
 
     # Transfer data to host
-    h_rowsA = A.rowPtr |> Vector{Cint}
-    h_colsA = A.colVal |> Vector{Cint}
-    h_valsA = A.nzVal |> Vector{T}
+    h_rowsA, h_colsA, h_valsA = get_csr_host(A)
 
     # cusolverRf is 0-based
-    h_rowsA .-= Cint(1)
-    h_colsA .-= Cint(1)
+    decrement!(h_rowsA)
+    decrement!(h_colsA)
     h_Qreorder = zeros(Cint, n)
     # Create duplicate matrix for reordering
     h_rowsB = copy(h_rowsA)
@@ -253,6 +251,8 @@ struct RFLowLevel{T}
     dT::CuVector{T}
 end
 
+Base.size(rf::RFLowLevel) = (rf.n, rf.m)
+
 # Default fallback: compute symbolic factorization with cusolver
 function RFLowLevel(
     A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
@@ -371,6 +371,8 @@ struct RFBatchedLowLevel{T}
     dQ::CuVector{Cint}
     dT::CuVector{T}
 end
+
+Base.size(rf::RFBatchedLowLevel) = (rf.n, rf.m)
 
 function RFBatchedLowLevel(
     A::CUSPARSE.CuSparseMatrixCSR{T, Ti}, batchsize;

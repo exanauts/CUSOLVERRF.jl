@@ -85,4 +85,8 @@ function drop_diag_csr(Bp::Vector{Ti}, Bj::Vector{Ti}, Bx::Vector{Tv}) where {Ti
     return Cp, Cj, Cx
 end
 
+function get_csr_host(A::CUSPARSE.CuSparseMatrixCSR)
+    return (A.rowPtr, A.colVal, A.nzVal) .|> Vector
+end
+get_csr_host(A::SparseArrays.SparseMatrixCSC) = convert2csr(A)
 
