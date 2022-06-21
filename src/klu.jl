@@ -53,3 +53,6 @@ function klu_symbolic_analysis(
     )
 end
 
+# Forgiving function
+klu_symbolic_analysis(A::CUSPARSE.CuSparseMatrixCSR) = klu_symbolic_analysis(SparseArrays.SparseMatrixCSC(A))
+

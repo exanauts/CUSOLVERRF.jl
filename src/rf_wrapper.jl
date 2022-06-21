@@ -70,7 +70,7 @@ Base.size(rf::RFSymbolicAnalysis) = (rf.n, rf.m)
 # By default, we run the symbolic analysis on the CPU using
 # the low-level utilities provided in cusolver.
 function rf_symbolic_analysis(
-    A::Union{CUSPARSE.CuSparseMatrixCSR{T, Ti}, SparseArrays.SparseMatrixCSC{T, Ti}};
+    A::CUSPARSE.CuSparseMatrixCSR{T, Ti};
     ordering=:AMD, tol=1e-8, check=true,
 ) where {T, Ti}
     m, n = size(A)

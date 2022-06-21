@@ -10,7 +10,6 @@ using SuiteSparse
     # TODO: add diagonal term to avoid nonzero F in KLU
     A0 = M + 1e-4I
     A1 = M +    2I
-    #= End of MIT LICENSE =#
 
     sol1 = A0  \ b
     sol2 = A0' \ b
@@ -19,10 +18,10 @@ using SuiteSparse
     A0_d = CuSparseMatrixCSR(A0)
     A1_d = CuSparseMatrixCSR(A1)
 
-    @testset "Normal mode ($sym)" for sym in [:KLU]
+    @testset "Normal mode ($sym)" for sym in [:KLU, :RF]
         x_d = CUDA.zeros(Float64, n)
         b_d = CuVector(b)
-        rf = CUSOLVERRF.RFLU(A0; symbolic=sym)
+        rf = CUSOLVERRF.RFLU(A0_d; symbolic=sym)
 
         ldiv!(x_d, rf, b_d)
         @test Vector(x_d) ≈ sol1
@@ -37,7 +36,7 @@ using SuiteSparse
         @test Vector(x_d) ≈ sol3
     end
 
-    @testset "Batch mode ($sym)" for sym in [:KLU]
+    @testset "Batch mode ($sym)" for sym in [:KLU, :RF]
         nrhs = 64
         B = rand(n, nrhs)
         X0_sol = A0  \ B
@@ -47,7 +46,7 @@ using SuiteSparse
         X_d = CUDA.zeros(Float64, n, nrhs)
         B_d = B |> CuMatrix
 
-        rf = CUSOLVERRF.RFLU(A0; symbolic=sym, nrhs=nrhs)
+        rf = CUSOLVERRF.RFLU(A0_d; symbolic=sym, nrhs=nrhs)
 
         ldiv!(X_d, rf, B_d)
         @test Matrix(X_d) ≈ X0_sol

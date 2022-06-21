@@ -69,6 +69,11 @@ function RFLU(
     return RFLU(rf, n, M, P, Q, r, T, tsv, dsm, tsm)
 end
 
+function Base.show(io::IO, rf::RFLU)
+    println(io, typeof(rf))
+    print("Set up with nbatch=$(size(rf.T, 2))")
+end
+
 # Refactoring
 function LinearAlgebra.lu!(rf::RFLU, J::CuSparseMatrixCSR)
     rf_refactor!(rf.rf, J)
