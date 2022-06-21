@@ -2,8 +2,10 @@
 using KLU
 
 @testset "KLU symbolic factorization" begin
+    n = 512
     A = sprand(n, n, .2)
-    A += A'
+    # TODO: need to add diagonal term to avoid nonzero F matrix in KLU
+    A += 1e-4I #A'
     b = rand(n)
     # Compute solution with UMFPACK
     solution = A \ b
@@ -29,3 +31,4 @@ using KLU
     res = Array(d_x)
     @test isapprox(res, solution ./ scale)
 end
+

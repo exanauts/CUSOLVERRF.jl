@@ -1,24 +1,15 @@
 
 using LinearAlgebra
+using SparseArrays
 using SuiteSparse
 
 @testset "Interface with LinearAlgebra" begin
-    #=
-        Code taken from https://github.com/JuliaSparse/KLU.jl/blob/main/test/runtests.jl#L9-L15
-        Subject to
-
-        MIT License
-
-        Copyright (c) 2021 Wimmerer <wrkimmerer@outlook.com> and contributors
-    =#
-    n = 5
-    A0 = sparse(SuiteSparse.increment!([0,4,1,1,2,2,0,1,2,3,4,4]),
-                SuiteSparse.increment!([0,4,0,2,1,2,1,4,3,2,1,2]),
-                [2.,1.,3.,4.,-1.,-3.,3.,6.,2.,1.,4.,2.], n, n)
-    A1 = sparse(increment!([0,4,1,1,2,2,0,1,2,3,4,4]),
-                increment!([0,4,0,2,1,2,1,4,3,2,1,2]),
-                [2.,1.,3.,4.,-1.,-3.,3.,9.,2.,1.,4.,2.], n, n)
-    b = [8., 45., -3., 3., 19.]
+    n = 512
+    M = sprandn(n, n, .2)
+    b = randn(n)
+    # TODO: add diagonal term to avoid nonzero F in KLU
+    A0 = M + 1e-4I
+    A1 = M +    2I
     #= End of MIT LICENSE =#
 
     sol1 = A0  \ b
@@ -28,7 +19,7 @@ using SuiteSparse
     A0_d = CuSparseMatrixCSR(A0)
     A1_d = CuSparseMatrixCSR(A1)
 
-    @testset "Normal mode ($sym)" for sym in [:KLU, :RF]
+    @testset "Normal mode ($sym)" for sym in [:KLU]
         x_d = CUDA.zeros(Float64, n)
         b_d = CuVector(b)
         rf = CUSOLVERRF.RFLU(A0; symbolic=sym)
@@ -46,7 +37,7 @@ using SuiteSparse
         @test Vector(x_d) ≈ sol3
     end
 
-    @testset "Batch mode ($sym)" for sym in [:KLU, :RF]
+    @testset "Batch mode ($sym)" for sym in [:KLU]
         nrhs = 64
         B = rand(n, nrhs)
         X0_sol = A0  \ B
@@ -62,13 +53,13 @@ using SuiteSparse
         @test Matrix(X_d) ≈ X0_sol
 
         ldiv!(X_d, rf', B_d)
-        @test Matrix(B_d) ≈ X1_sol
+        @test Matrix(X_d) ≈ X1_sol
 
         # Refactorization
         lu!(rf, A1_d)
 
-        ldiv!(x_d, rf, b_d)
-        @test Matrix(x_d) ≈ X2_sol
+        ldiv!(X_d, rf, B_d)
+        @test Matrix(X_d) ≈ X2_sol
     end
 end
 

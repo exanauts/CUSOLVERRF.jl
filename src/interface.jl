@@ -53,10 +53,10 @@ function RFLU(
     # Permutation matrices
     p = Array(rf.dP) ; increment!(p)
     q = Array(rf.dQ) ; increment!(q)
-    P_cpu = sparse(1:n, p, ones(n), n, n)
-    Q_cpu = sparse(q, 1:n, ones(n), n, n)
-    P = CuSparseMatrixCSR(P_cpu)
-    Q = CuSparseMatrixCSR(Q_cpu)
+    P_cpu = SparseArrays.sparse(1:n, p, ones(n), n, n)
+    Q_cpu = SparseArrays.sparse(q, 1:n, ones(n), n, n)
+    P = CUSPARSE.CuSparseMatrixCSR(P_cpu)
+    Q = CUSPARSE.CuSparseMatrixCSR(Q_cpu)
 
     # Buffers
     r = CuVector{Tv}(undef, n)       ; fill!(r, zero(Tv))

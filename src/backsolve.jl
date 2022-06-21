@@ -23,8 +23,8 @@ function CuSparseSV(
     # Compute buffer size
     outL = Ref{Cint}(1)
     CUSPARSE.cusparseDcsrsv2_bufferSize(
-        CUSPARSE.handle(), transa, m, nnz(A),
-        descL, nonzeros(A), A.rowPtr, A.colVal, infoL[1],
+        CUSPARSE.handle(), transa, m, SparseArrays.nnz(A),
+        descL, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, infoL[1],
         outL,
     )
 
@@ -32,8 +32,8 @@ function CuSparseSV(
     CUSPARSE.cusparseCreateCsrsv2Info(infoU)
     outU = Ref{Cint}(1)
     CUSPARSE.cusparseDcsrsv2_bufferSize(
-        CUSPARSE.handle(), transa, m, nnz(A),
-        descU, nonzeros(A), A.rowPtr, A.colVal, infoU[1],
+        CUSPARSE.handle(), transa, m, SparseArrays.nnz(A),
+        descU, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, infoU[1],
         outU,
     )
 
@@ -45,8 +45,8 @@ function CuSparseSV(
     # Allocate triangular
     for (desc, info) in [(descL, infoL), (descU, infoU)]
         CUSPARSE.cusparseDcsrsv2_analysis(
-            CUSPARSE.handle(), transa, m, nnz(A),
-            desc, nonzeros(A), A.rowPtr, A.colVal, info[1],
+            CUSPARSE.handle(), transa, m, SparseArrays.nnz(A),
+            desc, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, info[1],
             CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer,
         )
         posit = Ref{Cint}(1)
@@ -72,8 +72,8 @@ function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR, X::CuVector)
     for (desc, info) in operations
         CUSPARSE.cusparseDcsrsv2_solve(
             CUSPARSE.handle(),
-            s.transa, m, nnz(A), alpha, desc,
-            nonzeros(A), A.rowPtr, A.colVal, info[1],
+            s.transa, m, SparseArrays.nnz(A), alpha, desc,
+            SparseArrays.nonzeros(A), A.rowPtr, A.colVal, info[1],
             X, X,
             CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL, s.buffer,
         )
@@ -107,8 +107,8 @@ function CuSparseSM(
     outL = Ref{UInt64}(1)
     # TODO
     CUSPARSE.cusparseDcsrsm2_bufferSizeExt(
-        CUSPARSE.handle(), 0, transa, transxy, m, nX, nnz(A),
-        alpha, descL, nonzeros(A), A.rowPtr, A.colVal, X, ldx, infoL[1],
+        CUSPARSE.handle(), 0, transa, transxy, m, nX, SparseArrays.nnz(A),
+        alpha, descL, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, X, ldx, infoL[1],
         CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL,
         outL,
     )
@@ -117,8 +117,8 @@ function CuSparseSM(
     CUSPARSE.cusparseCreateCsrsm2Info(infoU)
     outU = Ref{UInt64}(1)
     CUSPARSE.cusparseDcsrsm2_bufferSizeExt(
-        CUSPARSE.handle(), 0, transa, transxy, m, nX, nnz(A),
-        alpha, descU, nonzeros(A), A.rowPtr, A.colVal, X, ldx, infoU[1],
+        CUSPARSE.handle(), 0, transa, transxy, m, nX, SparseArrays.nnz(A),
+        alpha, descU, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, X, ldx, infoU[1],
         CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL,
         outU,
     )
@@ -129,8 +129,8 @@ function CuSparseSM(
 
     for (desc, info) in [(descL, infoL), (descU, infoU)]
         CUSPARSE.cusparseDcsrsm2_analysis(
-            CUSPARSE.handle(), 0, transa, transxy, m, nX, nnz(A), alpha,
-            desc, nonzeros(A), A.rowPtr, A.colVal, X, ldx, info[1],
+            CUSPARSE.handle(), 0, transa, transxy, m, nX, SparseArrays.nnz(A), alpha,
+            desc, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, X, ldx, info[1],
             CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL, buffer,
         )
         posit = Ref{Cint}(1)
@@ -159,8 +159,8 @@ function backsolve!(s::CuSparseSM, A::CUSPARSE.CuSparseMatrixCSR, X::CuMatrix)
 
     for (desc, info) in operations
         CUSPARSE.cusparseDcsrsm2_solve(
-            CUSPARSE.handle(), 0, s.transa, transxy, m, nX, nnz(A), alpha,
-            desc, nonzeros(A), A.rowPtr, A.colVal, X, ldx, info[1],
+            CUSPARSE.handle(), 0, s.transa, transxy, m, nX, SparseArrays.nnz(A), alpha,
+            desc, SparseArrays.nonzeros(A), A.rowPtr, A.colVal, X, ldx, info[1],
             CUSPARSE.CUSPARSE_SOLVE_POLICY_USE_LEVEL, s.buffer,
         )
     end

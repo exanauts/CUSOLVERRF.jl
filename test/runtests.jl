@@ -1,6 +1,8 @@
 using Test
 using CUSOLVERRF
+using SuiteSparse
 
 include("cusolverRF.jl")
-include("klu_interface.jl")
+include("klu.jl")
+include("interface.jl")
 

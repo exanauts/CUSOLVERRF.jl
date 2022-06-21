@@ -18,6 +18,10 @@ function klu_symbolic_analysis(
     # Recompute factorization with proper options
     KLU.klu!(K, A)
 
+    if !iszero(K.F)
+        error("Nonzero off-diagonal block `F` detected in factorization")
+    end
+
     nnzA = SparseArrays.nnz(A)
     rowsA, colsA, valsA = convert2csr(A)
     rowsL, colsL, valsL = convert2csr(K.L)
@@ -25,7 +29,7 @@ function klu_symbolic_analysis(
 
     rowsL, colsL, valsL = drop_diag_csr(rowsL, colsL, valsL)
     nnzL = length(colsL)
-    nnzU = SparseArrays.nnz(K.U)
+    nnzU = length(colsU)
     # Convert to Cint
     P = convert(Vector{Cint}, K.p)
     Q = convert(Vector{Cint}, K.q)

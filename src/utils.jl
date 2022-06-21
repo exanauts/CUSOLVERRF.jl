@@ -63,7 +63,16 @@ function drop_diag_csr(Bp::Vector{Ti}, Bj::Vector{Ti}, Bx::Vector{Tv}) where {Ti
     n = length(Bp) - 1
     nnzB = Bp[n+1] - 1
 
-    nnzC = nnzB - n
+    ndiag = 0
+    for i in 1:n
+        for c in Bp[i]:Bp[i+1]-1
+            j = Bj[c]
+            if i == j
+                ndiag += 1
+            end
+        end
+    end
+    nnzC = nnzB - ndiag
     Cp = zeros(Ti, n+1)
     Cj = zeros(Ti, nnzC)
     Cx = zeros(Tv, nnzC)

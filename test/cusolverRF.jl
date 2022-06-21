@@ -4,19 +4,18 @@ using CUDA.CUSOLVER
 using CUDA.CUSPARSE
 using CUSOLVERRF
 
-n = 512
 
 @testset "cusolverRF" begin
+    # Generate data
+    n = 512
+    A = sprand(n, n, .2)
+    b = rand(n)
+    # Compute solution with UMFPACK
+    solution = A \ b
     @testset "RFLowLevel factorization" begin
-        A = sprand(n, n, .2)
-        A += A'
-        b = rand(n)
-        # Compute solution with UMFPACK
-        solution = A \ b
-
-        d_A = CuSparseMatrixCSR(A)
         d_b = CuVector{Float64}(b)
         d_x = CUDA.zeros(Float64, n)
+        d_A = CuSparseMatrixCSR(A)
 
         rflu = CUSOLVERRF.RFLowLevel(d_A)
 
@@ -33,17 +32,14 @@ n = 512
         res = Array(d_x)
         @test isapprox(res, solution ./ scale)
     end
-
     @testset "RFBacthedLowLevel factorization" begin
+        d_A = CuSparseMatrixCSR(A)
         # One matrix, multiple RHS
-        A = sprand(n, n, .2)
-        A += A'
         nbatch = 32
         B = rand(n, nbatch)
         # Compute solution with UMFPACK
         solution = A \ B
 
-        d_A = CuSparseMatrixCSR(A)
         d_B = CuMatrix{Float64}(B)
         d_X = CUDA.zeros(Float64, n, nbatch)
         rflu = CUSOLVERRF.RFBatchedLowLevel(d_A, nbatch)
