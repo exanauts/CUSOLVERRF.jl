@@ -188,7 +188,7 @@ function rf_symbolic_analysis(
 
         # Check that the matrix is nonsingular
         if singularity[] >= 0
-            SingularException(singularity[])
+            throw(LinearAlgebra.SingularException(singularity[]))
         end
     end
 
