@@ -32,7 +32,7 @@ LinearAlgebra.adjoint(rf::RFLU) = LinearAlgebra.Adjoint(rf)
 
 function RFLU(
     A::Union{SparseArrays.SparseMatrixCSC{Tv}, CUSPARSE.CuSparseMatrixCSR{Tv}};
-    nrhs=1, symbolic=:KLU, sym_options...
+    nrhs=1, symbolic=:RF, sym_options...
 ) where Tv <: Float64
     # Step 1: symbolic factorization
     sym_lu = if symbolic == :KLU
