@@ -33,10 +33,12 @@ with multiple right-hand-side entirely on the GPU.
 
 Suppose we have a sparse matrix `dA` instantiated on the GPU.
 ```julia
-using CUDA, CUSPARSE
+using SparseArrays, CUDA, LinearAlgebra
+using CUDA.CUSPARSE
+
 # Generate a random example
 n = 10
-A = sprand(n, n, .2)
+A = sprand(n, n, .2) + I 
 # Move A to the GPU
 dA = CuSparseMatrixCSR(A)
 ```
@@ -44,7 +46,6 @@ Computing the LU factorization of the sparse matrix `dA` with `cusolverRF` simpl
 ```julia
 using CUSOLVERRF
 rf = CUSOLVERRF.RFLU(dA; symbolic=:RF)
-
 ```
 In this step, the matrix is moved back to the host to compute the
 symbolic factorization. The factors `L` and `U` are then deported on
