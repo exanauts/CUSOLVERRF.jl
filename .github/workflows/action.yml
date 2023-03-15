@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags: '*'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  test-moonshot:
+    env:
+      CUDA_VISIBLE_DEVICES: 1
+      JULIA_DEPOT_PATH: /scratch/github-actions/julia_depot_cusolverrf
+      JULIA_CUDA_USE_BINARYBUILDER: true
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        julia-version: ['1.8']
+        julia-arch: [x64]
+        os: [ubuntu-22.04]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@latest
+        with:
+          version: ${{ matrix.julia-version }}
+      - uses: julia-actions/julia-buildpkg@latest
+      - uses: julia-actions/julia-runtest@latest
