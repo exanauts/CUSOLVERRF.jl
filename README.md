@@ -1,5 +1,9 @@
 # CUSOLVERRF.jl
 
+[![][build-img]][build-url]
+[build-img]: https://github.com/exanauts/CUSOLVERRF.jl/workflows/CI/badge.svg?branch=master
+[build-url]: https://github.com/exanauts/CUSOLVERRF.jl/actions?query=workflow
+
 This package is a thin Julia wrapper for [cusolverRF](https://docs.nvidia.com/cuda/cusolver/index.html#cuSolverRF-reference`)
 It extends [CUSOLVER.jl](https://github.com/JuliaGPU/CUDA.jl/tree/master/lib/cusolver), and is compatible with the rest of the Julia CUDA ecosystem.
 
@@ -38,7 +42,7 @@ using CUDA.CUSPARSE
 
 # Generate a random example
 n = 10
-A = sprand(n, n, .2) + I 
+A = sprand(n, n, .2) + I
 # Move A to the GPU
 dA = CuSparseMatrixCSR(A)
 ```
