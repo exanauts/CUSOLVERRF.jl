@@ -11,24 +11,6 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  test-github-cpuonly:
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        julia-version: ['1.8']
-        julia-arch: [x64]
-        os: [ubuntu-22.04]
-
-    steps:
-      - uses: actions/checkout@v3
-      - uses: julia-actions/setup-julia@latest
-        with:
-          version: ${{ matrix.julia-version }}
-      - uses: julia-actions/julia-buildpkg@latest
-      - uses: julia-actions/julia-runtest@latest
-
   test-moonshot:
     env:
       CUDA_VISIBLE_DEVICES: 1
