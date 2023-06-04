@@ -8,7 +8,7 @@ function _cu_matrix_description(A::CUSPARSE.CuSparseMatrixCSR, uplo, diag, index
     return desc
 end
 
-struct CuSparseSV
+struct CuSparseSV <: AbstractBacksolve
     algo::CUSPARSE.cusparseSpSVAlg_t
     transa::CUSPARSE.SparseChar
     descL::CUSPARSE.CuSparseMatrixDescriptor
@@ -22,6 +22,8 @@ function CuSparseSV(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar;
     algo=CUSPARSE.CUSPARSE_SPSV_ALG_DEFAULT,
 ) where T
+    # CUDA 12 is required for inplace computation in cusparseSpSV
+    @assert CUDA.runtime_version() >= v"12.0"
     n, m = size(A)
     @assert n == m
 
@@ -82,7 +84,7 @@ function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector
 end
 
 
-struct CuSparseSM
+struct CuSparseSM <: AbstractBacksolve
     algo::CUSPARSE.cusparseSpSMAlg_t
     transa::CUSPARSE.SparseChar
     descL::CUSPARSE.CuSparseMatrixDescriptor
@@ -96,6 +98,9 @@ function CuSparseSM(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar, X::CuMatrix{T};
     algo=CUSPARSE.CUSPARSE_SPSM_ALG_DEFAULT,
 ) where T
+    # CUDA 12 is required for inplace computation in cusparseSpSV
+    @assert CUDA.runtime_version() >= v"12.0"
+
     n, m = size(A)
     @assert n == m
 

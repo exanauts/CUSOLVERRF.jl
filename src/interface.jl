@@ -7,7 +7,7 @@ Sparse LU factorization on the GPU, using
 [cusolverRF](https://docs.nvidia.com/cuda/cusolver/index.html#cuSolverRF-reference).
 
 """
-struct RFLU{Tv} <: LinearAlgebra.Factorization{Tv}
+struct RFLU{Tv, SV, SM} <: LinearAlgebra.Factorization{Tv}
     rf::RFLowLevel{Tv}
     n::Int
     # M = L + U
@@ -20,9 +20,9 @@ struct RFLU{Tv} <: LinearAlgebra.Factorization{Tv}
     T::CuMatrix{Tv}
     # Store backsolve to avoid allocating
     # a new structure for each backsolve
-    tsv::CuSparseSV
-    dsm::CuSparseSM
-    tsm::CuSparseSM
+    tsv::SV
+    dsm::SM
+    tsm::SM
 end
 
 Base.size(rf::RFLU) = size(rf.M)
@@ -62,9 +62,15 @@ function RFLU(
     r = CuVector{Tv}(undef, n)       ; fill!(r, zero(Tv))
     T = CuMatrix{Tv}(undef, n, nrhs) ; fill!(T, zero(Tv))
 
-    tsv = CuSparseSV(M, 'T')
-    dsm = CuSparseSM(M, 'N', T)
-    tsm = CuSparseSM(M, 'T', T)
+    if CUDA.runtime_version() >= v"12.0"
+        tsv = CuSparseSV(M, 'T')
+        dsm = CuSparseSM(M, 'N', T)
+        tsm = CuSparseSM(M, 'T', T)
+    else
+        tsv = CuSparseSVDeprecated(M, 'T')
+        dsm = CuSparseSMDeprecated(M, 'N', T)
+        tsm = CuSparseSMDeprecated(M, 'T', T)
+    end
 
     return RFLU(rf, n, M, P, Q, r, T, tsv, dsm, tsm)
 end
@@ -115,8 +121,8 @@ end
 
 # Backward solve
 function LinearAlgebra.ldiv!(
-    arf::LinearAlgebra.Adjoint{T, RFLU{T}}, x::AbstractVector{T},
-) where T
+    arf::LinearAlgebra.Adjoint{T, RFLU{T, SV, SM}}, x::AbstractVector{T},
+) where {T, SV, SM}
     rf = arf.parent
     z = rf.r
     LinearAlgebra.mul!(z, rf.Q', x)
@@ -125,8 +131,8 @@ function LinearAlgebra.ldiv!(
 end
 
 function LinearAlgebra.ldiv!(
-    y::AbstractVector{T}, arf::LinearAlgebra.Adjoint{T, RFLU{T}}, x::AbstractVector{T},
-) where T
+    y::AbstractVector{T}, arf::LinearAlgebra.Adjoint{T, RFLU{T, SV, SM}}, x::AbstractVector{T},
+) where {T, SV, SM}
     rf = arf.parent
     z = rf.r
     LinearAlgebra.mul!(z, rf.Q', x)
@@ -135,8 +141,8 @@ function LinearAlgebra.ldiv!(
 end
 
 function LinearAlgebra.ldiv!(
-    Y::AbstractMatrix{T}, arf::LinearAlgebra.Adjoint{T, RFLU{T}}, X::AbstractMatrix{T},
-) where T
+    Y::AbstractMatrix{T}, arf::LinearAlgebra.Adjoint{T, RFLU{T, SV, SM}}, X::AbstractMatrix{T},
+) where {T, SV, SM}
     rf = arf.parent
     @assert size(Y, 2) == size(X, 2) == size(rf.T, 2)
     Z = rf.T
@@ -146,8 +152,8 @@ function LinearAlgebra.ldiv!(
 end
 
 function LinearAlgebra.ldiv!(
-    arf::LinearAlgebra.Adjoint{T, RFLU{T}}, X::AbstractMatrix{T},
-) where T
+    arf::LinearAlgebra.Adjoint{T, RFLU{T, SV, SM}}, X::AbstractMatrix{T},
+) where {T, SV, SM}
     rf = arf.parent
     @assert size(X, 2) == size(rf.T, 2)
     Z = rf.T
