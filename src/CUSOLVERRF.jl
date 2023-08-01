@@ -13,9 +13,15 @@ import KLU
 
 abstract type AbstractBacksolve end
 
+# Core library
+include("libcusolverGLU.jl")
+
+# Low-level wrappers
 include("utils.jl")
+include("rf_symbolic.jl")
+include("klu_symbolic.jl")
 include("rf_wrapper.jl")
-include("klu.jl")
+include("glu_wrapper.jl")
 
 include("backsolve.jl")
 include("backsolve_deprecated.jl")
