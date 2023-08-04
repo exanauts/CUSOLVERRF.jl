@@ -6,7 +6,8 @@ struct GLULowLevel{Ti, Tv}
     drowsA::CuVector{Ti}
     dcolsA::CuVector{Ti}
     dvalsA::CuVector{Tv}
-    dT::CuVector{Tv}
+    rhs::CuVector{Tv}
+    dT::CuVector{UInt8}
 end
 
 function GLULowLevel(
@@ -20,6 +21,7 @@ function GLULowLevel(
     nnzM = rowsM[n+1]
 
     # Load data on device
+    rhs = CUDA.zeros(T, n)
     drowsA = CuVector(lu_host.rowsA)
     dcolsA = CuVector(lu_host.colsA)
     dvalsA = CuVector(lu_host.valsA)
@@ -47,13 +49,13 @@ function GLULowLevel(
         glu,
     )
     # Create buffer.
-    size_buffer = Ref{UInt64}(0)
+    size_buffer = Ref{Csize_t}(0)
     cusolverSpDgluBufferSize(
         CUSOLVER.sparse_handle(),
         glu,
         size_buffer,
     )
-    dT = CUDA.zeros(Float64, size_buffer[])
+    dT = CUDA.zeros(UInt8, size_buffer[])
     # Analysis.
     cusolverSpDgluAnalysis(
         CUSOLVER.sparse_handle(),
@@ -78,7 +80,7 @@ function GLULowLevel(
         dT,
     )
     return GLULowLevel(
-        glu, n, lu_host.nnzA, drowsA, dcolsA, dvalsA, dT,
+        glu, n, lu_host.nnzA, drowsA, dcolsA, dvalsA, rhs, dT,
     )
 end
 
@@ -113,12 +115,13 @@ function glu_solve!(glu::GLULowLevel, x::CuVector)
         descA,
         glu.dvalsA, glu.drowsA, glu.dcolsA,
         x,  # RHS
-        x,  # LHS
+        glu.rhs,  # LHS
         ite_refine_succ,
         r_nrminf,
         glu.glu,
         glu.dT,
     )
+    copyto!(x, glu.rhs)
     return
 end
 
