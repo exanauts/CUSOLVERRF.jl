@@ -71,10 +71,7 @@ function RFLowLevel(
 end
 
 function RFLowLevel(
-    lu_host::RFSymbolicAnalysis{T, Ti};
-    fast_mode=true,
-    factorization_algo=CUSOLVER.CUSOLVERRF_FACTORIZATION_ALG0,
-    triangular_algo=CUSOLVER.CUSOLVERRF_TRIANGULAR_SOLVE_ALG1,
+    lu_host::RFSymbolicAnalysis{T, Ti}; options...
 ) where {T, Ti}
     # Currently CusolverRF supports only one right-hand side.
     nrhs = 1
@@ -83,11 +80,7 @@ function RFLowLevel(
     # Allocations (device)
     d_T = CUDA.zeros(Cdouble, m * nrhs)
 
-    rf = sparse_rf_handle(;
-        fast_mode=fast_mode,
-        factorization_algo=factorization_algo,
-        triangular_algo=triangular_algo,
-    )
+    rf = sparse_rf_handle(; options...)
 
     # Assemble internal data structures
     CUSOLVER.cusolverRfSetupHost(
@@ -205,21 +198,14 @@ function RFBatchedLowLevel(
 end
 
 function RFBatchedLowLevel(
-    lu_host::RFSymbolicAnalysis{T, Ti}, batchsize::Int;
-    fast_mode=true,
-    factorization_algo=CUSOLVER.CUSOLVERRF_FACTORIZATION_ALG0,
-    triangular_algo=CUSOLVER.CUSOLVERRF_TRIANGULAR_SOLVE_ALG1,
+    lu_host::RFSymbolicAnalysis{T, Ti}, batchsize::Int; options...
 ) where {T, Ti}
     n, m = size(lu_host)
 
     # Allocations (device)
     d_T = CUDA.zeros(Cdouble, m * batchsize * 2)
 
-    rf = sparse_rf_handle(;
-        fast_mode=fast_mode,
-        factorization_algo=factorization_algo,
-        triangular_algo=triangular_algo,
-    )
+    rf = sparse_rf_handle(; options...)
 
     # Assemble internal data structures
     h_valsA_batch = Vector{Float64}[lu_host.valsA for i in 1:batchsize]
