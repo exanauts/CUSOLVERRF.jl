@@ -1,7 +1,7 @@
 authors = ["fpacaud <francoispacaud8@gmail.com>"]
 name = "CUSOLVERRF"
 uuid = "a8cc9031-bad2-4722-94f5-40deabb4245c"
-version = "0.2.1"
+version = "0.2.2"
 
 [compat]
 CUDA = "4.0"
