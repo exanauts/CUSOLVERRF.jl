@@ -1,9 +1,3 @@
-using LinearAlgebra, SparseArrays, Test
-using CUDA
-using CUDA.CUSOLVER
-using CUDA.CUSPARSE
-using CUSOLVERRF
-
 
 @testset "cusolverRF" begin
     # Generate data

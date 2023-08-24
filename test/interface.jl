@@ -1,8 +1,4 @@
 
-using LinearAlgebra
-using SparseArrays
-using SuiteSparse
-
 @testset "Interface with LinearAlgebra" begin
     n = 512
     M = sprandn(n, n, .2)
