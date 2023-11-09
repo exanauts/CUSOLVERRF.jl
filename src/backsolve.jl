@@ -14,7 +14,7 @@ mutable struct CuDenseVectorDescriptor2
 
     function CuDenseVectorDescriptor2(T::DataType, n::Int)
         desc_ref = Ref{CUSPARSE.cusparseDnVecDescr_t}()
-        CUSPARSE.cusparseCreateDnVec(desc_ref, n, CU_NULL, T)
+        CUSPARSE.cusparseCreateDnVec(desc_ref, n, CUDA.CU_NULL, T)
         obj = new(desc_ref[])
         finalizer(CUSPARSE.cusparseDestroyDnVec, obj)
         obj
@@ -28,7 +28,7 @@ mutable struct CuDenseMatrixDescriptor2
 
     function CuDenseMatrixDescriptor2(T::DataType, m::Int, n::Int)
         desc_ref = Ref{CUSPARSE.cusparseDnMatDescr_t}()
-        CUSPARSE.cusparseCreateDnMat(desc_ref, m, n, m, CU_NULL, T, 'C')
+        CUSPARSE.cusparseCreateDnMat(desc_ref, m, n, m, CUDA.CU_NULL, T, 'C')
         obj = new(desc_ref[])
         finalizer(CUSPARSE.cusparseDestroyDnMat, obj)
         obj
