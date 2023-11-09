@@ -125,6 +125,8 @@ function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector
     end
 end
 
+# cusparseSpSV_updateMatrix(CUSPARSE.handle(), spsvDescr, newValues, updatePart)
+
 
 struct CuSparseSM <: AbstractBacksolve
     algo::CUSPARSE.cusparseSpSMAlg_t
@@ -157,11 +159,8 @@ function CuSparseSM(
     # Dummy coefficient
     alpha = one(T)
 
-    transx = 'N'
-    nX = size(X, 2)
-    ldx = max(1, stride(X, 2))
-
     # Dummy descriptor
+    transx = 'N'
     mX, nX = size(X)
     descX = CuDenseMatrixDescriptor2(T, mX, nX)
 

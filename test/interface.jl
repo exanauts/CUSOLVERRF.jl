@@ -10,6 +10,7 @@
     sol1 = A0  \ b
     sol2 = A0' \ b
     sol3 = A1  \ b
+    sol4 = A1' \ b
 
     A0_d = CuSparseMatrixCSR(A0)
     A1_d = CuSparseMatrixCSR(A1)
@@ -30,6 +31,9 @@
 
         ldiv!(x_d, rf, b_d)
         @test Vector(x_d) ≈ sol3
+
+        ldiv!(x_d, rf', b_d)
+        @test Vector(x_d) ≈ sol4
     end
 
     @testset "Batch mode ($sym)" for sym in [:KLU, :RF]
@@ -38,6 +42,7 @@
         X0_sol = A0  \ B
         X1_sol = A0' \ B
         X2_sol = A1  \ B
+        X3_sol = A1' \ B
 
         X_d = CUDA.zeros(Float64, n, nrhs)
         B_d = B |> CuMatrix
@@ -55,6 +60,8 @@
 
         ldiv!(X_d, rf, B_d)
         @test Matrix(X_d) ≈ X2_sol
+
+        ldiv!(X_d, rf', B_d)
+        @test Matrix(X_d) ≈ X3_sol
     end
 end
-
