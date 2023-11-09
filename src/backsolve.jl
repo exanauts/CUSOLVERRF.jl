@@ -44,7 +44,8 @@ struct CuSparseSV <: AbstractBacksolve
     descU::CUSPARSE.CuSparseMatrixDescriptor
     infoL::CUSPARSE.CuSparseSpSVDescriptor
     infoU::CUSPARSE.CuSparseSpSVDescriptor
-    buffer::CuVector{UInt8}
+    bufferL::CuVector{UInt8}
+    bufferU::CuVector{UInt8}
 end
 
 function CuSparseSV(
@@ -88,17 +89,18 @@ function CuSparseSV(
     # Allocate buffer
     @assert outL[] == outU[]
     n_bytes = outL[]::Csize_t
-    buffer = CUDA.zeros(UInt8, n_bytes)
+    buffer_L = CUDA.zeros(UInt8, n_bytes)
+    buffer_U = CUDA.zeros(UInt8, n_bytes)
 
     # Analysis
     CUSPARSE.cusparseSpSV_analysis(
-        CUSPARSE.handle(), transa, Ref{T}(alpha), descL, descX, descX, T, algo, spsv_L, buffer,
+        CUSPARSE.handle(), transa, Ref{T}(alpha), descL, descX, descX, T, algo, spsv_L, buffer_L,
     )
     CUSPARSE.cusparseSpSV_analysis(
-        CUSPARSE.handle(), transa, Ref{T}(alpha), descU, descX, descX, T, algo, spsv_U, buffer,
+        CUSPARSE.handle(), transa, Ref{T}(alpha), descU, descX, descX, T, algo, spsv_U, buffer_U,
     )
 
-    return CuSparseSV(algo, transa, descL, descU, spsv_L, spsv_U, buffer)
+    return CuSparseSV(algo, transa, descL, descU, spsv_L, spsv_U, buffer_L, buffer_U)
 end
 
 function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector{T}) where T
@@ -131,7 +133,8 @@ struct CuSparseSM <: AbstractBacksolve
     descU::CUSPARSE.CuSparseMatrixDescriptor
     infoL::CUSPARSE.CuSparseSpSMDescriptor
     infoU::CUSPARSE.CuSparseSpSMDescriptor
-    buffer::CuVector{UInt8}
+    bufferL::CuVector{UInt8}
+    bufferU::CuVector{UInt8}
 end
 
 function CuSparseSM(
@@ -180,16 +183,17 @@ function CuSparseSM(
 
     @assert outL[] == outU[]
     n_bytes = outL[]::UInt64
-    buffer = CUDA.zeros(UInt8, n_bytes)
+    buffer_L = CUDA.zeros(UInt8, n_bytes)
+    buffer_U = CUDA.zeros(UInt8, n_bytes)
 
     CUSPARSE.cusparseSpSM_analysis(
-        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descL, descX, descX, T, algo, spsm_L, buffer,
+        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descL, descX, descX, T, algo, spsm_L, buffer_L,
     )
     CUSPARSE.cusparseSpSM_analysis(
-        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descU, descX, descX, T, algo, spsm_U, buffer,
+        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descU, descX, descX, T, algo, spsm_U, buffer_U,
     )
 
-    return CuSparseSM(algo, transa, descL, descU, spsm_L, spsm_U, buffer)
+    return CuSparseSM(algo, transa, descL, descU, spsm_L, spsm_U, buffer_L, buffer_U)
 end
 
 function backsolve!(s::CuSparseSM, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuMatrix{T}) where T
