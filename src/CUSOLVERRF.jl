@@ -1,6 +1,7 @@
 module CUSOLVERRF
 
 import LinearAlgebra
+import LinearAlgebra.LAPACK: chktrans
 import SparseArrays
 
 import CUDA

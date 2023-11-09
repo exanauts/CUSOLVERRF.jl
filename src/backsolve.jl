@@ -8,6 +8,35 @@ function _cu_matrix_description(A::CUSPARSE.CuSparseMatrixCSR, uplo, diag, index
     return desc
 end
 
+# TODO: Add these constructors in CUDA.jl
+mutable struct CuDenseVectorDescriptor2
+    handle::CUSPARSE.cusparseDnVecDescr_t
+
+    function CuDenseVectorDescriptor2(T::DataType, n::Int)
+        desc_ref = Ref{CUSPARSE.cusparseDnVecDescr_t}()
+        CUSPARSE.cusparseCreateDnVec(desc_ref, n, CU_NULL, T)
+        obj = new(desc_ref[])
+        finalizer(CUSPARSE.cusparseDestroyDnVec, obj)
+        obj
+    end
+end
+
+Base.unsafe_convert(::Type{CUSPARSE.cusparseDnVecDescr_t}, desc::CuDenseVectorDescriptor2) = desc.handle
+
+mutable struct CuDenseMatrixDescriptor2
+    handle::CUSPARSE.cusparseDnMatDescr_t
+
+    function CuDenseMatrixDescriptor2(T::DataType, m::Int, n::Int)
+        desc_ref = Ref{CUSPARSE.cusparseDnMatDescr_t}()
+        CUSPARSE.cusparseCreateDnMat(desc_ref, m, n, m, CU_NULL, T, 'C')
+        obj = new(desc_ref[])
+        finalizer(CUSPARSE.cusparseDestroyDnMat, obj)
+        obj
+    end
+end
+
+Base.unsafe_convert(::Type{CUSPARSE.cusparseDnMatDescr_t}, desc::CuDenseMatrixDescriptor2) = desc.handle
+
 struct CuSparseSV <: AbstractBacksolve
     algo::CUSPARSE.cusparseSpSVAlg_t
     transa::CUSPARSE.SparseChar
@@ -22,8 +51,10 @@ function CuSparseSV(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar;
     algo=CUSPARSE.CUSPARSE_SPSV_ALG_DEFAULT,
 ) where T
+    chktrans(transa)
+
     # CUDA 12 is required for inplace computation in cusparseSpSV
-    @assert CUDA.runtime_version() >= v"12.0"
+    @assert CUDA.runtime_version() ≥ v"12.3"
     n, m = size(A)
     @assert n == m
 
@@ -33,10 +64,10 @@ function CuSparseSV(
     descU = _cu_matrix_description(A, 'U', 'N', 'O')
 
     # Dummy coefficient
-    alpha = T(1.0)
+    alpha = one(T)
 
-    x = CUDA.zeros(T, n)
-    descX = CUSPARSE.CuDenseVectorDescriptor(x)
+    # Dummy descriptor
+    descX = CuDenseVectorDescriptor2(T, n)
 
     # Descriptor for lower-triangular SpSV operation
     spsv_L = CUSPARSE.CuSparseSpSVDescriptor()
@@ -46,7 +77,7 @@ function CuSparseSV(
         CUSPARSE.handle(), transa, Ref{T}(alpha), descL, descX, descX, T, algo, spsv_L, outL,
     )
 
-    # Descriptor for lower-triangular SpSV operation
+    # Descriptor for upper-triangular SpSV operation
     spsv_U = CUSPARSE.CuSparseSpSVDescriptor()
     # Compute buffer size
     outU = Ref{Csize_t}(1)
@@ -59,26 +90,35 @@ function CuSparseSV(
     n_bytes = outL[]::Csize_t
     buffer = CUDA.zeros(UInt8, n_bytes)
 
+    # Analysis
+    CUSPARSE.cusparseSpSV_analysis(
+        CUSPARSE.handle(), transa, Ref{T}(alpha), descL, descX, descX, T, algo, spsv_L, buffer,
+    )
+    CUSPARSE.cusparseSpSV_analysis(
+        CUSPARSE.handle(), transa, Ref{T}(alpha), descU, descX, descX, T, algo, spsv_U, buffer,
+    )
+
     return CuSparseSV(algo, transa, descL, descU, spsv_L, spsv_U, buffer)
 end
 
 function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector{T}) where T
     m,n = A.dims
-    alpha = T(1.0)
+    alpha = one(T)
 
     descX = CUSPARSE.CuDenseVectorDescriptor(X)
-    operations = if s.transa == 'N'
-        [(s.descL, s.infoL), (s.descU, s.infoU)]
-    elseif s.transa == 'T'
-        [(s.descU, s.infoU), (s.descL, s.infoL)]
-    end
-
-    for (desc, info) in operations
-        CUSPARSE.cusparseSpSV_analysis(
-            CUSPARSE.handle(), s.transa, Ref{T}(alpha), desc, descX, descX, T, s.algo, info, s.buffer,
+    if s.transa == 'N'
+        CUSPARSE.cusparseSpSV_solve(
+            CUSPARSE.handle(), s.transa, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
         )
         CUSPARSE.cusparseSpSV_solve(
-            CUSPARSE.handle(), s.transa, Ref{T}(alpha), desc, descX, descX, T, s.algo, info,
+            CUSPARSE.handle(), s.transa, Ref{T}(alpha), s.descU, descX, descX, T, s.algo, s.infoU,
+        )
+    else
+        CUSPARSE.cusparseSpSV_solve(
+            CUSPARSE.handle(), s.transa, Ref{T}(alpha), s.descU, descX, descX, T, s.algo, s.infoU,
+        )
+        CUSPARSE.cusparseSpSV_solve(
+            CUSPARSE.handle(), s.transa, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
         )
     end
 end
@@ -98,8 +138,10 @@ function CuSparseSM(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar, X::CuMatrix{T};
     algo=CUSPARSE.CUSPARSE_SPSM_ALG_DEFAULT,
 ) where T
-    # CUDA 12 is required for inplace computation in cusparseSpSV
-    @assert CUDA.runtime_version() >= v"12.0"
+    chktrans(transa)
+
+    # CUDA 12 is required for inplace computation in cusparseSpSM
+    @assert CUDA.runtime_version() ≥ v"12.3"
 
     n, m = size(A)
     @assert n == m
@@ -110,13 +152,15 @@ function CuSparseSM(
     descU = _cu_matrix_description(A, 'U', 'N', 'O')
 
     # Dummy coefficient
-    alpha = T(1.0)
+    alpha = one(T)
 
     transx = 'N'
     nX = size(X, 2)
     ldx = max(1, stride(X, 2))
 
-    descX = CUSPARSE.CuDenseMatrixDescriptor(X)
+    # Dummy descriptor
+    mX, nX = size(X)
+    descX = CuDenseMatrixDescriptor2(T, mX, nX)
 
     # Descriptor for lower-triangular SpSV operation
     spsm_L = CUSPARSE.CuSparseSpSMDescriptor()
@@ -138,29 +182,36 @@ function CuSparseSM(
     n_bytes = outL[]::UInt64
     buffer = CUDA.zeros(UInt8, n_bytes)
 
+    CUSPARSE.cusparseSpSM_analysis(
+        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descL, descX, descX, T, algo, spsm_L, buffer,
+    )
+    CUSPARSE.cusparseSpSM_analysis(
+        CUSPARSE.handle(), transa, transx, Ref{T}(alpha), descU, descX, descX, T, algo, spsm_U, buffer,
+    )
+
     return CuSparseSM(algo, transa, descL, descU, spsm_L, spsm_U, buffer)
 end
 
 function backsolve!(s::CuSparseSM, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuMatrix{T}) where T
     m,n = A.dims
-    alpha = T(1.0)
+    alpha = one(T)
 
     descX = CUSPARSE.CuDenseMatrixDescriptor(X)
     transx = 'N'
 
-    operations = if s.transa == 'N'
-        [(s.descL, s.infoL), (s.descU, s.infoU)]
-    elseif s.transa == 'T'
-        [(s.descU, s.infoU), (s.descL, s.infoL)]
-    end
-
-    for (desc, info) in operations
-        CUSPARSE.cusparseSpSM_analysis(
-            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), desc, descX, descX, T, s.algo, info, s.buffer,
+    if s.transa == 'N'
+        CUSPARSE.cusparseSpSM_solve(
+            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
         )
         CUSPARSE.cusparseSpSM_solve(
-            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), desc, descX, descX, T, s.algo, info,
+            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), s.descU, descX, descX, T, s.algo, s.infoU,
+        )
+    else
+        CUSPARSE.cusparseSpSM_solve(
+            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), s.descU, descX, descX, T, s.algo, s.infoU,
+        )
+        CUSPARSE.cusparseSpSM_solve(
+            CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
         )
     end
 end
-
