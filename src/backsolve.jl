@@ -48,6 +48,14 @@ struct CuSparseSV <: AbstractBacksolve
     bufferU::CuVector{UInt8}
 end
 
+function cusparseSpSV_updateMatrix(handle, spsvDescr, newValues, updatePart)
+    CUDA.initialize_context()
+    @ccall CUSPARSE.libcusparse.cusparseSpSV_updateMatrix(handle::CUSPARSE.cusparseHandle_t,
+                                                          spsvDescr::CUSPARSE.cusparseSpSVDescr_t,
+                                                          newValues::CUDA.CuPtr{Cvoid},
+                                                          updatePart::CUSPARSE.cusparseSpSVUpdate_t)::CUSPARSE.cusparseStatus_t
+end
+
 function CuSparseSV(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar;
     algo=CUSPARSE.CUSPARSE_SPSV_ALG_DEFAULT,
@@ -108,6 +116,9 @@ function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector
     alpha = one(T)
 
     descX = CUSPARSE.CuDenseVectorDescriptor(X)
+    cusparseSpSV_updateMatrix(CUSPARSE.handle(), s.infoL, A.nzVal, CUSPARSE.CUSPARSE_SPSV_UPDATE_GENERAL)
+    cusparseSpSV_updateMatrix(CUSPARSE.handle(), s.infoU, A.nzVal, CUSPARSE.CUSPARSE_SPSV_UPDATE_GENERAL)
+
     if s.transa == 'N'
         CUSPARSE.cusparseSpSV_solve(
             CUSPARSE.handle(), s.transa, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
@@ -124,9 +135,6 @@ function backsolve!(s::CuSparseSV, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuVector
         )
     end
 end
-
-# cusparseSpSV_updateMatrix(CUSPARSE.handle(), spsvDescr, newValues, updatePart)
-
 
 struct CuSparseSM <: AbstractBacksolve
     algo::CUSPARSE.cusparseSpSMAlg_t
