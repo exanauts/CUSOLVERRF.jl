@@ -9,6 +9,7 @@ function _cu_matrix_description(A::CUSPARSE.CuSparseMatrixCSR, uplo, diag, index
 end
 
 # TODO: Add these constructors in CUDA.jl
+#----------------------------------------------------------------------------------------------------------------#
 mutable struct CuDenseVectorDescriptor2
     handle::CUSPARSE.cusparseDnVecDescr_t
 
@@ -55,6 +56,7 @@ function cusparseSpSV_updateMatrix(handle, spsvDescr, newValues, updatePart)
                                                           newValues::CUDA.CuPtr{Cvoid},
                                                           updatePart::CUSPARSE.cusparseSpSVUpdate_t)::CUSPARSE.cusparseStatus_t
 end
+#----------------------------------------------------------------------------------------------------------------#
 
 function CuSparseSV(
     A::CUSPARSE.CuSparseMatrixCSR{T}, transa::CUSPARSE.SparseChar;
