@@ -64,7 +64,7 @@ function CuSparseSV(
 ) where T
     chktrans(transa)
 
-    # CUDA 12 is required for inplace computation in cusparseSpSV
+    # CUDA 12.3 is required for the routine cusparseSpSV_updateMatrix
     @assert CUDA.runtime_version() ≥ v"12.3"
     n, m = size(A)
     @assert n == m
@@ -154,8 +154,8 @@ function CuSparseSM(
 ) where T
     chktrans(transa)
 
-    # CUDA 12 is required for inplace computation in cusparseSpSM
-    @assert CUDA.runtime_version() ≥ v"12.0"
+    # CUDA 12.3 is required for the routine cusparseSpSV_updateMatrix
+    @assert CUDA.runtime_version() ≥ v"12.3"
 
     n, m = size(A)
     @assert n == m
