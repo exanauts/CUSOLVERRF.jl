@@ -62,14 +62,16 @@ function RFLU(
     r = CuVector{Tv}(undef, n)       ; fill!(r, zero(Tv))
     T = CuMatrix{Tv}(undef, n, nrhs) ; fill!(T, zero(Tv))
 
-    if CUDA.runtime_version() >= v"12.0"
+    if CUDA.runtime_version() ≥ v"12.3"
         tsv = CuSparseSV(M, 'T')
         dsm = CuSparseSM(M, 'N', T)
         tsm = CuSparseSM(M, 'T', T)
-    else
+    elseif CUDA.runtime_version() ≤ v"11.8"
         tsv = CuSparseSVDeprecated(M, 'T')
         dsm = CuSparseSMDeprecated(M, 'N', T)
         tsm = CuSparseSMDeprecated(M, 'T', T)
+    else
+        error("The current version of CUDA is not supported.")
     end
 
     return RFLU(rf, n, M, P, Q, r, T, tsv, dsm, tsm)
@@ -83,6 +85,29 @@ end
 # Refactoring
 function LinearAlgebra.lu!(rf::RFLU, J::CuSparseMatrixCSR)
     rf_refactor!(rf.rf, J)
+    # Perform the analysis again of SpSM
+    if CUDA.runtime_version() ≥ v"12.3"
+        T = eltype(J)
+        alpha = one(T)
+        # Update rf.dsm
+        dsm = rf.dsm
+        descX = CuDenseMatrixDescriptor2(T, dsm.n, dsm.nrhs)
+        CUSPARSE.cusparseSpSM_analysis(
+            CUSPARSE.handle(), dsm.transa, 'N', Ref{T}(alpha), dsm.descL, descX, descX, T, dsm.algo, dsm.infoL, dsm.bufferL,
+        )
+        CUSPARSE.cusparseSpSM_analysis(
+            CUSPARSE.handle(), dsm.transa, 'N', Ref{T}(alpha), dsm.descU, descX, descX, T, dsm.algo, dsm.infoU, dsm.bufferU,
+        )
+        # Update rf.tsm
+        tsm = rf.tsm
+        descX = CuDenseMatrixDescriptor2(T, tsm.n, tsm.nrhs)
+        CUSPARSE.cusparseSpSM_analysis(
+            CUSPARSE.handle(), tsm.transa, 'N', Ref{T}(alpha), tsm.descL, descX, descX, T, tsm.algo, tsm.infoL, tsm.bufferL,
+        )
+        CUSPARSE.cusparseSpSM_analysis(
+            CUSPARSE.handle(), tsm.transa, 'N', Ref{T}(alpha), tsm.descU, descX, descX, T, tsm.algo, tsm.infoU, tsm.bufferU,
+        )
+    end
 end
 
 # Direct solve
