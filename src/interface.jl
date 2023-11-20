@@ -91,7 +91,7 @@ function LinearAlgebra.lu!(rf::RFLU, J::CuSparseMatrixCSR)
         alpha = one(T)
         # Update rf.dsm
         dsm = rf.dsm
-        descX = CuDenseMatrixDescriptor2(T, dsm.n, dsm.nrhs)
+        descX = CUSPARSE.CuDenseMatrixDescriptor(T, dsm.n, dsm.nrhs)
         CUSPARSE.cusparseSpSM_analysis(
             CUSPARSE.handle(), dsm.transa, 'N', Ref{T}(alpha), dsm.descL, descX, descX, T, dsm.algo, dsm.infoL, dsm.bufferL,
         )
@@ -100,7 +100,7 @@ function LinearAlgebra.lu!(rf::RFLU, J::CuSparseMatrixCSR)
         )
         # Update rf.tsm
         tsm = rf.tsm
-        descX = CuDenseMatrixDescriptor2(T, tsm.n, tsm.nrhs)
+        descX = CUSPARSE.CuDenseMatrixDescriptor(T, tsm.n, tsm.nrhs)
         CUSPARSE.cusparseSpSM_analysis(
             CUSPARSE.handle(), tsm.transa, 'N', Ref{T}(alpha), tsm.descL, descX, descX, T, tsm.algo, tsm.infoL, tsm.bufferL,
         )
