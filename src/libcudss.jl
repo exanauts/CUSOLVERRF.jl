@@ -1,3 +1,5 @@
+const libcudss = "./libcudss.so.0.1.0"
+
 using CEnum
 
 mutable struct cudssContext end
