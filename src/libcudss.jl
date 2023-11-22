@@ -188,7 +188,7 @@ end
 @checked function cudssMatrixCreateDn(matrix, nrows, ncols, ld, values, valueType, layout)
     initialize_context()
     @ccall libcudss.cudssMatrixCreateDn(matrix::Ptr{cudssMatrix_t}, nrows::Int64,
-                                        ncols::Int64, ld::Int64, values::Ptr{Cvoid},
+                                        ncols::Int64, ld::Int64, values::CuPtr{Cvoid},
                                         valueType::cudaDataType_t,
                                         layout::cudssLayout_t)::cudssStatus_t
 end
@@ -198,9 +198,9 @@ end
                                        mview, indexBase)
     initialize_context()
     @ccall libcudss.cudssMatrixCreateCsr(matrix::Ptr{cudssMatrix_t}, nrows::Int64,
-                                         ncols::Int64, nnz::Int64, rowStart::Ptr{Cvoid},
-                                         rowEnd::Ptr{Cvoid}, colIndices::Ptr{Cvoid},
-                                         values::Ptr{Cvoid}, indexType::cudaDataType_t,
+                                         ncols::Int64, nnz::Int64, rowStart::CuPtr{Cvoid},
+                                         rowEnd::CuPtr{Cvoid}, colIndices::CuPtr{Cvoid},
+                                         values::CuPtr{Cvoid}, indexType::cudaDataType_t,
                                          valueType::cudaDataType_t,
                                          mtype::cudssMatrixType_t,
                                          mview::cudssMatrixViewType_t,
@@ -216,7 +216,7 @@ end
     initialize_context()
     @ccall libcudss.cudssMatrixGetDn(matrix::cudssMatrix_t, nrows::Ptr{Int64},
                                      ncols::Ptr{Int64}, ld::Ptr{Int64},
-                                     values::Ptr{Ptr{Cvoid}}, type::Ptr{cudaDataType_t},
+                                     values::Ptr{CuPtr{Cvoid}}, type::Ptr{cudaDataType_t},
                                      layout::Ptr{cudssLayout_t})::cudssStatus_t
 end
 
@@ -225,8 +225,8 @@ end
     initialize_context()
     @ccall libcudss.cudssMatrixGetCsr(matrix::cudssMatrix_t, nrows::Ptr{Int64},
                                       ncols::Ptr{Int64}, nnz::Ptr{Int64},
-                                      rowStart::Ptr{Ptr{Cvoid}}, rowEnd::Ptr{Ptr{Cvoid}},
-                                      colIndices::Ptr{Ptr{Cvoid}}, values::Ptr{Ptr{Cvoid}},
+                                      rowStart::Ptr{CuPtr{Cvoid}}, rowEnd::Ptr{CuPtr{Cvoid}},
+                                      colIndices::Ptr{CuPtr{Cvoid}}, values::Ptr{CuPtr{Cvoid}},
                                       indexType::Ptr{cudaDataType_t},
                                       valueType::Ptr{cudaDataType_t},
                                       mtype::Ptr{cudssMatrixType_t},
@@ -237,14 +237,14 @@ end
 @checked function cudssMatrixSetValues(matrix, values)
     initialize_context()
     @ccall libcudss.cudssMatrixSetValues(matrix::cudssMatrix_t,
-                                         values::Ptr{Cvoid})::cudssStatus_t
+                                         values::CuPtr{Cvoid})::cudssStatus_t
 end
 
 @checked function cudssMatrixSetCsrPointers(matrix, rowOffsets, rowEnd, colIndices, values)
     initialize_context()
-    @ccall libcudss.cudssMatrixSetCsrPointers(matrix::cudssMatrix_t, rowOffsets::Ptr{Cvoid},
-                                              rowEnd::Ptr{Cvoid}, colIndices::Ptr{Cvoid},
-                                              values::Ptr{Cvoid})::cudssStatus_t
+    @ccall libcudss.cudssMatrixSetCsrPointers(matrix::cudssMatrix_t, rowOffsets::CuPtr{Cvoid},
+                                              rowEnd::CuPtr{Cvoid}, colIndices::CuPtr{Cvoid},
+                                              values::CuPtr{Cvoid})::cudssStatus_t
 end
 
 @checked function cudssMatrixGetFormat(matrix, format)
