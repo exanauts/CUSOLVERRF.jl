@@ -118,8 +118,8 @@ function CuSparseSM(
 ) where T
     chktrans(transa)
 
-    # CUDA 12.3 is required for the routine cusparseSpSV_updateMatrix
-    @assert CUDA.runtime_version() ≥ v"12.3"
+    # CUDA 12.4 is required for the routine cusparseSpSM_updateMatrix
+    @assert CUDA.runtime_version() ≥ v"12.4"
 
     m, n = size(A)
     @assert m == n
@@ -173,8 +173,10 @@ function backsolve!(s::CuSparseSM, A::CUSPARSE.CuSparseMatrixCSR{T}, X::CuMatrix
     alpha = one(T)
 
     descX = CUSPARSE.CuDenseMatrixDescriptor(X)
-    transx = 'N'
+    CUSPARSE.cusparseSpSM_updateMatrix(CUSPARSE.handle(), s.infoL, A.nzVal, CUSPARSE.CUSPARSE_SPSM_UPDATE_GENERAL)
+    CUSPARSE.cusparseSpSM_updateMatrix(CUSPARSE.handle(), s.infoU, A.nzVal, CUSPARSE.CUSPARSE_SPSM_UPDATE_GENERAL)
 
+    transx = 'N'
     if s.transa == 'N'
         CUSPARSE.cusparseSpSM_solve(
             CUSPARSE.handle(), s.transa, transx, Ref{T}(alpha), s.descL, descX, descX, T, s.algo, s.infoL,
