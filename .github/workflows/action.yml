@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         julia-version: ['1.10', '1.11']
-        cuda-version: ['11.8', '12.4']
+        cuda-version: ['11.8', '12.6']
         julia-arch: [x64]
         os: [ubuntu-22.04]
 
