@@ -5,7 +5,7 @@ version = "0.2.4"
 
 [compat]
 CUDA = "4, 5.3.0"
-KLU = "0.3, 0.4"
+KLU = "0.4.1, 0.6"
 julia = "1.6"
 
 [deps]
