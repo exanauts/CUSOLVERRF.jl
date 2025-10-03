@@ -11,15 +11,12 @@ on:
     - cron: '0 0 * * 0'
 
 jobs:
-  test-moonshot:
-    env:
-      CUDA_VISIBLE_DEVICES: 1
-      JULIA_DEPOT_PATH: /scratch/github-actions/julia_depot_cusolverrf
-    runs-on: self-hosted
+  test-gpu:
+    runs-on: [moonshot]
     strategy:
       matrix:
         julia-version: ['lts', '1.11']
-        cuda-version: ['11.8', '12.8']
+        cuda-version: ['11.8', '12.9']
         julia-arch: [x64]
         os: [ubuntu-22.04]
 
